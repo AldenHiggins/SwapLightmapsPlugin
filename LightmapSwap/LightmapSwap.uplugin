@@ -1,0 +1,21 @@
+{
+	"PluginFileVersion" : 3,
+
+	"FriendlyName" : "Lightmap Swapping",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Alden Higgins",
+	"CreatedByURL" : "",
+	"EngineVersion" : 1579795,
+	"Description" : "Adds new menu options to save/load lightmaps",
+	"Category" : "Lightmap",
+	
+	"Modules" :
+	[		
+		{
+
+			"Name" : "LightmapSwap",
+			"Type" : "Editor"
+		}
+	]
+}
