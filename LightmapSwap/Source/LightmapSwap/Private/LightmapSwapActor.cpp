@@ -1,5 +1,10 @@
 #include "LightmapSwapModule.h"
+#include "AssetRegistryModule.h"
+#include "ImageUtils.h"
+#include "AssetToolsModule.h"
+#include "AssetRegistryModule.h"
 #include "LightmapSwapActor.h"
+
 
 ALightmapSwapActor::ALightmapSwapActor(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -8,11 +13,24 @@ ALightmapSwapActor::ALightmapSwapActor(const FObjectInitializer& ObjectInitializ
 
 TArray<UTexture2D *> ALightmapSwapActor::getLightMapTextureArray()
 {
+	// Clear out the actors in the scene
+	actorsInScene.Empty();
+
 	for (TActorIterator<AActor> ActorItr(GWorld); ActorItr; ++ActorItr)
 	{
 		AActor *theActor = *ActorItr;
 
+		// Add this actor to our list so we can track info about it...nsa style
+		actorsInScene.Add(theActor);
+
 		UE_LOG(LogTemp, Warning, TEXT("Actor name: %s"), *theActor->GetName());
+
+		if (theActor->GetName() == TEXT("Chair"))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Found the chair!!"));
+			staticMeshToGetLightmapFrom = (UStaticMeshComponent *) theActor->GetComponentByClass(UStaticMeshComponent::StaticClass());;
+			continue;
+		}
 
 		if (theActor->GetName() != TEXT("Floor_14"))
 		{
@@ -44,15 +62,41 @@ TArray<UTexture2D *> ALightmapSwapActor::getLightMapTextureArray()
 
 			UE_LOG(LogTemp, Warning, TEXT("LODs found: %d"), staticMeshComponent->LODData.Num());
 
-			lightMaps.Empty();
-
 			staticMeshToApplyLightmapsTo = staticMeshComponent;
 
-			for (int32 lodIndex = 0; lodIndex < staticMeshComponent->LODData.Num(); lodIndex++)
-			{
-				lightMaps.Add(staticMeshComponent->LODData[lodIndex].LightMap);
-			}
+			// Initialize the package name
+			FString Name;
+			FString PackageName;
+			FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+			AssetToolsModule.Get().CreateUniqueAssetName(TEXT("/Game/SavedLightmaps/MyCoolNewTexture"), TEXT("MyCoolNewTexture"), PackageName, Name);
 
+			// Create the new texture
+			EObjectFlags Flags = RF_Public | RF_Standalone;
+			UPackage* Pkg = CreatePackage(nullptr, *PackageName);
+
+			UTexture2D *oldLightmapTexture = staticMeshComponent->LODData[0].LightMap->GetLightMap2D()->GetTexture(0);
+			firstCopiedTexture = DuplicateObject(oldLightmapTexture, Pkg, TEXT("MyCoolNewTexture"));
+
+			firstCopiedTexture->MarkPackageDirty();
+
+			FAssetRegistryModule::AssetCreated(firstCopiedTexture);
+
+			FString Name2;
+			FString PackageName2;
+			AssetToolsModule.Get().CreateUniqueAssetName(TEXT("/Game/SavedLightmaps/MyCoolNewTexture2"), TEXT("MyCoolNewTextureTheSecond"), PackageName2, Name2);
+			UPackage* SecondPackage = CreatePackage(nullptr, *PackageName2);
+
+			UTexture2D *secondLightmapTexture = staticMeshComponent->LODData[0].LightMap->GetLightMap2D()->GetTexture(1);
+			secondCopiedTexture = DuplicateObject(secondLightmapTexture, SecondPackage, TEXT("MyCoolNewTextureTheSecond"));
+
+			secondCopiedTexture->MarkPackageDirty();
+
+			FAssetRegistryModule::AssetCreated(secondCopiedTexture);
+
+			myCoolLightmap.setTexture(0, firstCopiedTexture);
+			myCoolLightmap.setTexture(1, secondCopiedTexture);
+
+			myCoolLightmap.copyDataFromOtherLightmap(staticMeshComponent->LODData[0].LightMap->GetLightMap2D());
 		}
 	}
 
@@ -64,14 +108,19 @@ TArray<UTexture2D *> ALightmapSwapActor::getLightMapTextureArray()
 
 void ALightmapSwapActor::loadLightMap()
 {
+	if (staticMeshToApplyLightmapsTo == NULL || staticMeshToGetLightmapFrom == NULL)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Trying to load lightmap but one hasn't been saved!"));
+		return;
+	}
+
 	for (int32 lodIndex = 0; lodIndex < staticMeshToApplyLightmapsTo->LODData.Num(); lodIndex++)
 	{
-		if (lodIndex >= lightMaps.Num())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("More LOD levels than saved lightmaps, something went wrong yo!"));
-		}
-
-		staticMeshToApplyLightmapsTo->LODData[lodIndex].LightMap = lightMaps[lodIndex];
+		//TRefCountPtr<FLightMap2D> LightMap;
+		FLightMap2D *lightmapPointer = &myCoolLightmap;
+		TRefCountPtr<FLightMap2D> lightmapRefCountPointer = lightmapPointer;
+		staticMeshToApplyLightmapsTo->LODData[lodIndex].LightMap = lightmapRefCountPointer;
+		staticMeshToApplyLightmapsTo->MarkRenderStateDirty();
 	}
 }
 

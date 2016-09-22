@@ -3,6 +3,7 @@
 #include "GameFramework/Actor.h"
 #include "SceneTypes.h"
 #include "LightMap.h"
+#include "CustomLightmapClass.h"
 #include "LightmapSwapActor.generated.h"
 
 UCLASS()
@@ -23,7 +24,21 @@ public:
 
 private:
 
+	FCustomLightmapClass myCoolLightmap;
 
+	UPROPERTY()
+	UTexture2D *firstCopiedTexture;
+
+	UPROPERTY()
+	UTexture2D *secondCopiedTexture;
+
+	UPROPERTY()
+	TArray<AActor *> actorsInScene;
+
+	UPROPERTY()
 	UStaticMeshComponent *staticMeshToApplyLightmapsTo;
-	TArray<FLightMapRef> lightMaps;
+
+	UPROPERTY()
+	UStaticMeshComponent *staticMeshToGetLightmapFrom;
+
 };

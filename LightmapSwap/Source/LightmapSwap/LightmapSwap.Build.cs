@@ -21,6 +21,20 @@ public class LightmapSwap : ModuleRules
             }
 		);
 		//Private Paths
-        PrivateIncludePaths.AddRange(new[] { "LightmapSwap/Private" });
+        PrivateIncludePaths.AddRange
+        (
+            new[]
+            {
+                "LightmapSwap/Private"
+            }
+        );
+
+        PrivateIncludePathModuleNames.AddRange
+        (
+            new string[]
+            {
+                "AssetTools"
+            }
+        );
     }
 }
