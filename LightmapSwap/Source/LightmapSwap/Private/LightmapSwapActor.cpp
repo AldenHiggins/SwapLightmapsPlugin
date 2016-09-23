@@ -100,6 +100,20 @@ TArray<UTexture2D *> ALightmapSwapActor::getLightMapTextureArray()
 		}
 	}
 
+	for (TActorIterator<AActor> ActorItr(GWorld); ActorItr; ++ActorItr)
+	{
+		AActor *theActor = *ActorItr;
+
+		UPointLightComponent * lightComponent = (UPointLightComponent *) theActor->GetComponentByClass(UPointLightComponent::StaticClass());
+
+		if (lightComponent != NULL)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Light component found on actor: %s"), *theActor->GetName());
+			PointLightComponent = lightComponent;
+		}
+
+	}
+
 	TArray<UTexture2D*> LightMapsAndShadowMaps;
 	GWorld->GetLightMapsAndShadowMaps(GWorld->GetCurrentLevel(), LightMapsAndShadowMaps);
 
@@ -114,13 +128,59 @@ void ALightmapSwapActor::loadLightMap()
 		return;
 	}
 
-	for (int32 lodIndex = 0; lodIndex < staticMeshToApplyLightmapsTo->LODData.Num(); lodIndex++)
+	TArray<UTexture2D*> LightMapsAndShadowMaps;
+	GWorld->GetLightMapsAndShadowMaps(GWorld->GetCurrentLevel(), LightMapsAndShadowMaps);
+
+	
+	uint8* TexData = firstCopiedTexture->Source.LockMip(0);
+
+	for (int mipIndex = 1; mipIndex < firstCopiedTexture->GetNumMips(); mipIndex++)
 	{
-		//TRefCountPtr<FLightMap2D> LightMap;
-		FLightMap2D *lightmapPointer = &myCoolLightmap;
-		TRefCountPtr<FLightMap2D> lightmapRefCountPointer = lightmapPointer;
-		staticMeshToApplyLightmapsTo->LODData[lodIndex].LightMap = lightmapRefCountPointer;
-		staticMeshToApplyLightmapsTo->MarkRenderStateDirty();
+		firstCopiedTexture->Source.LockMip(mipIndex);
 	}
+
+	//LightMapsAndShadowMaps[0]->Source.LockMip(0);
+
+	for (int mipIndex = 0; mipIndex < LightMapsAndShadowMaps[0]->GetNumMips(); mipIndex++)
+	{
+		LightMapsAndShadowMaps[0]->Source.LockMip(mipIndex);
+	}
+
+	//firstCopiedTexture->TemporarilyDisableStreaming();
+	LightMapsAndShadowMaps[0]->TemporarilyDisableStreaming();
+
+	FUpdateTextureRegion2D Region(0, 0, 0, 0, LightMapsAndShadowMaps[0]->GetSizeX(), LightMapsAndShadowMaps[0]->GetSizeY());
+	LightMapsAndShadowMaps[0]->UpdateTextureRegions(0, 1, &Region, LightMapsAndShadowMaps[0]->GetSizeX() * 4, 16, TexData);
+	//FlushRenderingCommands();
+
+	for (int mipIndex = 1; mipIndex < LightMapsAndShadowMaps[0]->GetNumMips(); mipIndex++)
+	{
+		LightMapsAndShadowMaps[0]->Source.LockMip(mipIndex);
+	}
+
+	for (int mipIndex = 0; mipIndex < firstCopiedTexture->GetNumMips(); mipIndex++)
+	{
+		firstCopiedTexture->Source.UnlockMip(mipIndex);
+	}
+
+
+	for (int mipIndex = 0; mipIndex < LightMapsAndShadowMaps[0]->GetNumMips(); mipIndex++)
+	{
+		LightMapsAndShadowMaps[0]->Source.UnlockMip(mipIndex);
+	}
+
+	for (int actorIndex = 0; actorIndex < actorsInScene.Num(); actorIndex++)
+	{
+		actorsInScene[actorIndex]->ReregisterAllComponents();
+	}
+
+	//for (int32 lodIndex = 0; lodIndex < staticMeshToApplyLightmapsTo->LODData.Num(); lodIndex++)
+	//{
+	//	//TRefCountPtr<FLightMap2D> LightMap;
+	//	FLightMap2D *lightmapPointer = &myCoolLightmap;
+	//	TRefCountPtr<FLightMap2D> lightmapRefCountPointer = lightmapPointer;
+	//	staticMeshToApplyLightmapsTo->LODData[lodIndex].LightMap = lightmapRefCountPointer;
+	//	staticMeshToApplyLightmapsTo->MarkRenderStateDirty();
+	//}
 }
 

@@ -22,18 +22,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lightmap Loading")
 	void loadLightMap();
 
-private:
-
-	FCustomLightmapClass myCoolLightmap;
-
 	UPROPERTY()
 	UTexture2D *firstCopiedTexture;
 
 	UPROPERTY()
 	UTexture2D *secondCopiedTexture;
 
+private:
+
+	FCustomLightmapClass myCoolLightmap;
+
 	UPROPERTY()
 	TArray<AActor *> actorsInScene;
+
+	UPROPERTY()
+	UPointLightComponent* PointLightComponent;
 
 	UPROPERTY()
 	UStaticMeshComponent *staticMeshToApplyLightmapsTo;
