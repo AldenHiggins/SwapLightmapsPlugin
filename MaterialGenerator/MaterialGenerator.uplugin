@@ -1,0 +1,21 @@
+{
+	"PluginFileVersion" : 3,
+
+	"FriendlyName" : "Material Generator",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Alden Higgins",
+	"CreatedByURL" : "",
+	"EngineVersion" : 1579795,
+	"Description" : "Adds new menu option to generate a material",
+	"Category" : "Materials",
+	
+	"Modules" :
+	[		
+		{
+
+			"Name" : "MaterialGenerator",
+			"Type" : "Editor"
+		}
+	]
+}
