@@ -44,4 +44,6 @@ private:
 	UPROPERTY()
 	UStaticMeshComponent *staticMeshToGetLightmapFrom;
 
+	void copyTextureData(UTexture2D *sourceTexture, UTexture2D *targetTexture);
+
 };

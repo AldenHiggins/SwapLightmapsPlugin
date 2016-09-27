@@ -122,65 +122,63 @@ TArray<UTexture2D *> ALightmapSwapActor::getLightMapTextureArray()
 
 void ALightmapSwapActor::loadLightMap()
 {
-	if (staticMeshToApplyLightmapsTo == NULL || staticMeshToGetLightmapFrom == NULL)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Trying to load lightmap but one hasn't been saved!"));
-		return;
-	}
-
 	TArray<UTexture2D*> LightMapsAndShadowMaps;
 	GWorld->GetLightMapsAndShadowMaps(GWorld->GetCurrentLevel(), LightMapsAndShadowMaps);
 
-	
-	uint8* TexData = firstCopiedTexture->Source.LockMip(0);
+	copyTextureData(firstCopiedTexture, LightMapsAndShadowMaps[0]);
+	//copyTextureData(secondCopiedTexture, LightMapsAndShadowMaps[1]);
+}
 
-	for (int mipIndex = 1; mipIndex < firstCopiedTexture->GetNumMips(); mipIndex++)
+void ALightmapSwapActor::copyTextureData(UTexture2D *sourceTexture, UTexture2D *targetTexture)
+{
+	// Do some error checking
+	if (sourceTexture->GetNumMips() != targetTexture->GetNumMips())
 	{
-		firstCopiedTexture->Source.LockMip(mipIndex);
+		UE_LOG(LogTemp, Warning, TEXT("Cannot copy texture data because the number of mips doesn't match up!!"));
+		return;
 	}
 
-	//LightMapsAndShadowMaps[0]->Source.LockMip(0);
-
-	for (int mipIndex = 0; mipIndex < LightMapsAndShadowMaps[0]->GetNumMips(); mipIndex++)
+	if (sourceTexture->GetSizeX() != targetTexture->GetSizeY() || sourceTexture->GetSizeY() != targetTexture->GetSizeY())
 	{
-		LightMapsAndShadowMaps[0]->Source.LockMip(mipIndex);
+		UE_LOG(LogTemp, Warning, TEXT("Cannot copy texture data because the textures are not the same size!!"));
+		return;
 	}
 
-	//firstCopiedTexture->TemporarilyDisableStreaming();
-	LightMapsAndShadowMaps[0]->TemporarilyDisableStreaming();
+	// How many mips we're going to update
+	int32 mipCount = sourceTexture->GetNumMips();
 
-	FUpdateTextureRegion2D Region(0, 0, 0, 0, LightMapsAndShadowMaps[0]->GetSizeX(), LightMapsAndShadowMaps[0]->GetSizeY());
-	LightMapsAndShadowMaps[0]->UpdateTextureRegions(0, 1, &Region, LightMapsAndShadowMaps[0]->GetSizeX() * 4, 16, TexData);
-	//FlushRenderingCommands();
+	// Get a reference to the pixel data we're going to copy
+	TArray<uint8*> TexData;
+	//= sourceTexture->Source.LockMip(0);
 
-	for (int mipIndex = 1; mipIndex < LightMapsAndShadowMaps[0]->GetNumMips(); mipIndex++)
+	// Lock all the mips for the source and target
+	for (int mipIndex = 0; mipIndex < mipCount; mipIndex++)
 	{
-		LightMapsAndShadowMaps[0]->Source.LockMip(mipIndex);
+		TexData.Add(sourceTexture->Source.LockMip(mipIndex));
+		targetTexture->Source.LockMip(mipIndex);
 	}
 
-	for (int mipIndex = 0; mipIndex < firstCopiedTexture->GetNumMips(); mipIndex++)
+	// Disable streaming on the target while we copy over the data
+	targetTexture->TemporarilyDisableStreaming();
+
+	// Copy over the data from the source to the target texture (with some temp hardcoded sizes)
+	for (int mipIndex = 0; mipIndex < 1; mipIndex++)
 	{
-		firstCopiedTexture->Source.UnlockMip(mipIndex);
+		FUpdateTextureRegion2D Region(0, 0, 0, 0, targetTexture->PlatformData->Mips[mipIndex].SizeX, targetTexture->PlatformData->Mips[mipIndex].SizeY);
+		targetTexture->UpdateTextureRegions(mipIndex, 1, &Region, targetTexture->PlatformData->Mips[mipIndex].SizeX * 4, 16, TexData[mipIndex]);
 	}
 
-
-	for (int mipIndex = 0; mipIndex < LightMapsAndShadowMaps[0]->GetNumMips(); mipIndex++)
+	// Unlock the source and target mips
+	for (int mipIndex = 0; mipIndex < mipCount; mipIndex++)
 	{
-		LightMapsAndShadowMaps[0]->Source.UnlockMip(mipIndex);
+		sourceTexture->Source.UnlockMip(mipIndex);
+		targetTexture->Source.UnlockMip(mipIndex);
 	}
 
-	for (int actorIndex = 0; actorIndex < actorsInScene.Num(); actorIndex++)
-	{
-		actorsInScene[actorIndex]->ReregisterAllComponents();
-	}
-
-	//for (int32 lodIndex = 0; lodIndex < staticMeshToApplyLightmapsTo->LODData.Num(); lodIndex++)
+	//// Re register all actor components to let the world know the lighting conditions have changed?  Not sure if this is necessary, need to test
+	//for (TActorIterator<AActor> ActorItr(GWorld); ActorItr; ++ActorItr)
 	//{
-	//	//TRefCountPtr<FLightMap2D> LightMap;
-	//	FLightMap2D *lightmapPointer = &myCoolLightmap;
-	//	TRefCountPtr<FLightMap2D> lightmapRefCountPointer = lightmapPointer;
-	//	staticMeshToApplyLightmapsTo->LODData[lodIndex].LightMap = lightmapRefCountPointer;
-	//	staticMeshToApplyLightmapsTo->MarkRenderStateDirty();
+	//	(*ActorItr)->ReregisterAllComponents();
 	//}
 }
 
