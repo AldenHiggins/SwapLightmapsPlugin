@@ -4,6 +4,7 @@
 #include "SceneTypes.h"
 #include "LightMap.h"
 #include "CustomLightmapClass.h"
+#include "Archive.h"
 #include "LightmapSwapActor.generated.h"
 
 UCLASS()
@@ -27,6 +28,10 @@ public:
 
 	UPROPERTY()
 	UTexture2D *secondCopiedTexture;
+
+	FBufferArchive firstLightmapBinaryData;
+
+	FBufferArchive secondLightmapBinaryData;
 
 private:
 

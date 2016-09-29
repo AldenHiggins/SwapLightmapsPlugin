@@ -3,6 +3,7 @@
 #include "ImageUtils.h"
 #include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"
+#include "Engine/Texture2D.h"
 #include "LightmapSwapActor.h"
 
 
@@ -59,44 +60,69 @@ TArray<UTexture2D *> ALightmapSwapActor::getLightMapTextureArray()
 				continue;
 			}
 
+			UTexture2D *firstLightmapTexture = staticMeshComponent->LODData[0].LightMap->GetLightMap2D()->GetTexture(0);
 
-			UE_LOG(LogTemp, Warning, TEXT("LODs found: %d"), staticMeshComponent->LODData.Num());
-
-			staticMeshToApplyLightmapsTo = staticMeshComponent;
-
-			// Initialize the package name
-			FString Name;
-			FString PackageName;
 			FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
-			AssetToolsModule.Get().CreateUniqueAssetName(TEXT("/Game/SavedLightmaps/MyCoolNewTexture"), TEXT("MyCoolNewTexture"), PackageName, Name);
+			FString PathName = TEXT("/Game");
 
-			// Create the new texture
-			EObjectFlags Flags = RF_Public | RF_Standalone;
-			UPackage* Pkg = CreatePackage(nullptr, *PackageName);
+			FString ObjectName;
+			FString NewPackageName;
+			AssetToolsModule.Get().CreateUniqueAssetName(PathName + "/" + TEXT("NewTexture"), TEXT(""), NewPackageName, ObjectName);
 
-			UTexture2D *oldLightmapTexture = staticMeshComponent->LODData[0].LightMap->GetLightMap2D()->GetTexture(0);
-			firstCopiedTexture = DuplicateObject(oldLightmapTexture, Pkg, TEXT("MyCoolNewTexture"));
+			// create one on skeleton folder
+			UObject* NewAsset = AssetToolsModule.Get().DuplicateAsset(ObjectName, PathName, firstLightmapTexture);
 
-			firstCopiedTexture->MarkPackageDirty();
+			NewAsset->MarkPackageDirty();
 
-			FAssetRegistryModule::AssetCreated(firstCopiedTexture);
+			FAssetRegistryModule::AssetCreated(NewAsset);
 
-			FString Name2;
-			FString PackageName2;
-			AssetToolsModule.Get().CreateUniqueAssetName(TEXT("/Game/SavedLightmaps/MyCoolNewTexture2"), TEXT("MyCoolNewTextureTheSecond"), PackageName2, Name2);
-			UPackage* SecondPackage = CreatePackage(nullptr, *PackageName2);
 
-			UTexture2D *secondLightmapTexture = staticMeshComponent->LODData[0].LightMap->GetLightMap2D()->GetTexture(1);
-			secondCopiedTexture = DuplicateObject(secondLightmapTexture, SecondPackage, TEXT("MyCoolNewTextureTheSecond"));
+			//UTexture2D *firstLightmapTexture = staticMeshComponent->LODData[0].LightMap->GetLightMap2D()->GetTexture(0);
 
-			secondCopiedTexture->MarkPackageDirty();
+			//firstLightmapBinaryData << firstLightmapTexture;
 
-			FAssetRegistryModule::AssetCreated(secondCopiedTexture);
+			//UTexture2D *secondLightmapTexture = staticMeshComponent->LODData[1].LightMap->GetLightMap2D()->GetTexture(0);
 
-			myCoolLightmap.setTexture(0, firstCopiedTexture);
-			myCoolLightmap.setTexture(1, secondCopiedTexture);
+			//secondLightmapBinaryData << secondLightmapTexture;
 
-			myCoolLightmap.copyDataFromOtherLightmap(staticMeshComponent->LODData[0].LightMap->GetLightMap2D());
+
+			//UE_LOG(LogTemp, Warning, TEXT("LODs found: %d"), staticMeshComponent->LODData.Num());
+
+			//staticMeshToApplyLightmapsTo = staticMeshComponent;
+
+			//// Initialize the package name
+			//FString Name;
+			//FString PackageName;
+			//FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+			//AssetToolsModule.Get().CreateUniqueAssetName(TEXT("/Game/SavedLightmaps/MyCoolNewTexture"), TEXT("MyCoolNewTexture"), PackageName, Name);
+
+			//// Create the new texture
+			//EObjectFlags Flags = RF_Public | RF_Standalone;
+			//UPackage* Pkg = CreatePackage(nullptr, *PackageName);
+
+			//UTexture2D *oldLightmapTexture = staticMeshComponent->LODData[0].LightMap->GetLightMap2D()->GetTexture(0);
+			//firstCopiedTexture = DuplicateObject(oldLightmapTexture, Pkg, TEXT("MyCoolNewTexture"));
+
+			//firstCopiedTexture->MarkPackageDirty();
+
+			//FAssetRegistryModule::AssetCreated(firstCopiedTexture);
+
+			//FString Name2;
+			//FString PackageName2;
+			//AssetToolsModule.Get().CreateUniqueAssetName(TEXT("/Game/SavedLightmaps/MyCoolNewTexture2"), TEXT("MyCoolNewTextureTheSecond"), PackageName2, Name2);
+			//UPackage* SecondPackage = CreatePackage(nullptr, *PackageName2);
+
+			//UTexture2D *secondLightmapTexture = staticMeshComponent->LODData[0].LightMap->GetLightMap2D()->GetTexture(1);
+			//secondCopiedTexture = DuplicateObject(secondLightmapTexture, SecondPackage, TEXT("MyCoolNewTextureTheSecond"));
+
+			//secondCopiedTexture->MarkPackageDirty();
+
+			//FAssetRegistryModule::AssetCreated(secondCopiedTexture);
+
+			//myCoolLightmap.setTexture(0, firstCopiedTexture);
+			//myCoolLightmap.setTexture(1, secondCopiedTexture);
+
+			//myCoolLightmap.copyDataFromOtherLightmap(staticMeshComponent->LODData[0].LightMap->GetLightMap2D());
 		}
 	}
 
@@ -122,30 +148,48 @@ TArray<UTexture2D *> ALightmapSwapActor::getLightMapTextureArray()
 
 void ALightmapSwapActor::loadLightMap()
 {
+	FStringAssetReference AssetPath(TEXT("/Game/TestMap1.TestMap1"));
+
+	firstCopiedTexture = (UTexture2D *) AssetPath.TryLoad();
+
+	UE_LOG(LogTemp, Warning, TEXT("Trying to load a texture yo"));
+
 	TArray<UTexture2D*> LightMapsAndShadowMaps;
 	GWorld->GetLightMapsAndShadowMaps(GWorld->GetCurrentLevel(), LightMapsAndShadowMaps);
 
+	//UTexture2D* recoveredLightmap = UTexture2D::CreateTransient(512, 512, PF_B8G8R8A8);
+	////UTexture2D recoveredLightmap;
+
+	//FMemoryReader reading = FMemoryReader(firstLightmapBinaryData, true);
+	//reading.Seek(0);
+
+	//recoveredLightmap->Serialize(reading);
+
+
+
 	copyTextureData(firstCopiedTexture, LightMapsAndShadowMaps[0]);
+
 	//copyTextureData(secondCopiedTexture, LightMapsAndShadowMaps[1]);
 }
 
 void ALightmapSwapActor::copyTextureData(UTexture2D *sourceTexture, UTexture2D *targetTexture)
 {
 	// Do some error checking
-	if (sourceTexture->GetNumMips() != targetTexture->GetNumMips())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Cannot copy texture data because the number of mips doesn't match up!!"));
-		return;
-	}
+	//if (sourceTexture->GetNumMips() != targetTexture->GetNumMips())
+	//{
+	//	UE_LOG(LogTemp, Warning, TEXT("Cannot copy texture data because the number of mips doesn't match up!!"));
+	//	return;
+	//}
 
-	if (sourceTexture->GetSizeX() != targetTexture->GetSizeY() || sourceTexture->GetSizeY() != targetTexture->GetSizeY())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Cannot copy texture data because the textures are not the same size!!"));
-		return;
-	}
+	//if (sourceTexture->GetSizeX() != targetTexture->GetSizeY() || sourceTexture->GetSizeY() != targetTexture->GetSizeY())
+	//{
+	//	UE_LOG(LogTemp, Warning, TEXT("Cannot copy texture data because the textures are not the same size!!"));
+	//	return;
+	//}
 
 	// How many mips we're going to update
-	int32 mipCount = sourceTexture->GetNumMips();
+	int32 mipCount = targetTexture->GetNumMips();
+	//int32 mipCount = 1;
 
 	// Get a reference to the pixel data we're going to copy
 	TArray<uint8*> TexData;
@@ -154,15 +198,29 @@ void ALightmapSwapActor::copyTextureData(UTexture2D *sourceTexture, UTexture2D *
 	// Lock all the mips for the source and target
 	for (int mipIndex = 0; mipIndex < mipCount; mipIndex++)
 	{
-		TexData.Add(sourceTexture->Source.LockMip(mipIndex));
+		TexData.Add(sourceTexture->PlatformData.Mips[mipIndex].BulkData.(LgmipIndex));
 		targetTexture->Source.LockMip(mipIndex);
 	}
 
+
+
+
+	//const int32 TextureDataSize = InLeftEyeAtlasData.Num() * InLeftEyeAtlasData.GetTypeSize();
+	//check(TextureDataSize == LeftEyeAtlas->GetSizeX() * LeftEyeAtlas->GetSizeY() * sizeof(FColor));
+
+	//FTexture2DMipMap& Mip = LeftEyeAtlas->PlatformData->Mips[0];
+	//void* Data = Mip.BulkData.Lock(LOCK_READ_WRITE);
+	//FMemory::Memcpy(Data, InLeftEyeAtlasData.GetData(), TextureDataSize);
+	//Mip.BulkData.Unlock();
+	//LeftEyeAtlas->UpdateResource();
+
+
+
 	// Disable streaming on the target while we copy over the data
-	targetTexture->TemporarilyDisableStreaming();
+	//targetTexture->TemporarilyDisableStreaming();
 
 	// Copy over the data from the source to the target texture (with some temp hardcoded sizes)
-	for (int mipIndex = 0; mipIndex < 1; mipIndex++)
+	for (int mipIndex = 0; mipIndex < mipCount; mipIndex++)
 	{
 		FUpdateTextureRegion2D Region(0, 0, 0, 0, targetTexture->PlatformData->Mips[mipIndex].SizeX, targetTexture->PlatformData->Mips[mipIndex].SizeY);
 		targetTexture->UpdateTextureRegions(mipIndex, 1, &Region, targetTexture->PlatformData->Mips[mipIndex].SizeX * 4, 16, TexData[mipIndex]);
@@ -181,4 +239,3 @@ void ALightmapSwapActor::copyTextureData(UTexture2D *sourceTexture, UTexture2D *
 	//	(*ActorItr)->ReregisterAllComponents();
 	//}
 }
-
